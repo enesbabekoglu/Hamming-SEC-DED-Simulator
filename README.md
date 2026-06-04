@@ -92,8 +92,6 @@ Beklenen: **Teyit** başarılı, **Data Out** = giriş verisi. Testler arasında
 - [ ] Data Out = Data In
 - [ ] Üç test sonunda bellekte adres 0, 1, 2 dolu
 
-Demo videosu için adım adım rehber: [`docs/demo-sessiz-adimlar.md`](docs/demo-sessiz-adimlar.md)
-
 ## Hamming kodu (özet)
 
 - Parite sayısı: 2^r ≥ m + r + 1
