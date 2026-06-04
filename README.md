@@ -1,64 +1,116 @@
-# Hamming SEC-DED Simülatörü
+# Hamming Error-Correcting Code Simülatörü
 
-Bu uygulama, Hamming SEC-DED (Single Error Correction - Double Error Detection) kodlamasını ve hata düzeltme işlemlerini görselleştirir ve simüle eder. Kullanıcılar 8, 16 veya 32 bitlik verileri kodlayabilir, belleğe yazabilir, yapay hatalar oluşturabilir ve düzeltebilir.
+BLM230 Bilgisayar Mimarisi proje ödevi için standart **Hamming Error-Correcting Code** simülatörü. 8, 16 ve 32 bit veriler kodlanır, bellekte simüle edilir, yapay tek bit hatası oluşturulur; sendrom ile hata teyit edilip düzeltilir ve **Data Out** gösterilir.
 
 ## Özellikler
 
-- **Bit Uzunluğu Seçimi**: 8, 16 veya 32 bit veri kodlama
-- **Veri Girişi**: İkili (0101...) veya hexadecimal (0x...) formatında veri girişi
-- **Bellek Simülasyonu**: Verileri simüle edilmiş bir bellekte saklama ve okuma
-- **Hata Simülasyonu**: İstenen bit pozisyonunda hata enjekte etme
-- **Hata Tespiti ve Düzeltme**: Hamming SEC-DED ile hataları tespit etme ve düzeltme
-- **Görselleştirme**: Bit pozisyonlarının ve değerlerinin renkli gösterimi
-- **İşlem Geçmişi**: Yapılan işlemlerin kaydını tutma
+- 8 / 16 / 32 bit veri uzunluğu
+- Hamming kodlama ve bellek simülasyonu (adres tablosu)
+- 1 tabanlı bit numaralandırma (bit 1 = sağ uç)
+- Yapay hata enjeksiyonu, sendrom kelimesi, teyit, Error Signal, Data Out
+- Renkli bit görselleştirme ve işlem geçmişi
 
 ## Kurulum
 
-1. Gerekli kütüphaneleri yükleyin:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+cd Hamming-SEC-DED-Simulator
+pip3 install -r requirements.txt
+python3 main.py
+```
 
-2. Uygulamayı çalıştırın:
-   ```bash
-   python main.py
-   ```
+> macOS’ta `PyQt5==5.15.7` derleme hatası verirse `requirements.txt` zaten wheel sürümü (`>=5.15.10`) kullanır.
 
-## Kullanım
+### macOS — çift tıkla başlatma
 
-1. **Veri Kodlama ve Belleğe Yazma**:
-   - Bit uzunluğu seçin (8, 16, 32)
-   - Veri girişi yapın (ikili veya hex formatında)
-   - Bellek adresi seçin
-   - "Kodla ve Belleğe Yaz" butonuna tıklayın
+`start_hamming.command` dosyasına çift tıklayın.
 
-2. **Bellekten Okuma**:
-   - Okumak istediğiniz bellek adresini seçin
-   - "Bellekten Oku" butonuna tıklayın
+“Erişim ayrıcalıkları” uyarısı çıkarsa:
 
-3. **Hata Oluşturma**:
-   - Mevcut veri gösterilirken "Hata Oluştur" butonuna tıklayın
-   - Hata enjekte etmek istediğiniz bit pozisyonunu girin
+```bash
+chmod +x start_hamming.command
+xattr -cr start_hamming.command
+```
 
-4. **Hata Tespiti ve Düzeltme**:
-   - "Hata Tespit/Düzelt" butonuna tıklayın
-   - Sonuçları görüntüleyin
+İlk seferde sağ tık → **Aç** de kullanılabilir.
 
-## Hamming SEC-DED Kodlaması Hakkında
+## Kullanım (kısa akış)
 
-Hamming SEC-DED kodlaması, tek bit hatalarını düzeltme ve çift bit hatalarını tespit etme yeteneğine sahip bir hata düzeltme kodudur. 
+1. **Bit Uzunluğu** ve **Veri Girişi** (seçilen uzunlukta ikili)
+2. **Bellek Adresi** → **Kodla ve Belleğe Yaz**
+3. **Hata Oluştur** → bit pozisyonu (1 tabanlı)
+4. **Hata Tespit/Düzelt** → sendrom paneli ve Data Out
 
-- **Parite Biti Hesaplama**: 2^r ≥ m + r + 1 (m = veri biti sayısı, r = parite biti sayısı)
-- **Veri Bitleri**: Parite bitlerinin pozisyonları dışındaki konumlara yerleştirilir
-- **Parite Bitleri**: 2'nin kuvveti olan pozisyonlara yerleştirilir (1, 2, 4, 8, ...)
-- **Genel Parite Biti**: Çift/tek parite kontrolü yapar, çift hataları tespit etmek için eklenir
+İsteğe bağlı: **Bellekten Oku**, **Yardım ve S.S.S.**
 
-## Teknik Detaylar
+## Test senaryoları
 
-- **PyQt5**: Grafik kullanıcı arayüzü
-- **Python**: Algoritma ve işlev implementasyonu
-- **Hamming Kodlayıcı**: 8, 16 ve 32 bit destekler
+Her test: **Kodla ve Belleğe Yaz** → **Hata Oluştur** → **Hata Tespit/Düzelt**.  
+Beklenen: **Teyit** başarılı, **Data Out** = giriş verisi. Testler arasında farklı bellek adresi kullanın.
+
+### Test 1 — 8 bit
+
+| Alan | Değer |
+|------|--------|
+| Bit Uzunluğu | `8 bit` |
+| Veri Girişi | `10110010` |
+| Bellek Adresi | `0` |
+| Hamming uzunluğu | 12 bit |
+| Yapay hata (bit no) | `6` |
+
+**Beklenen:** Sendrom ondalık `6`, Data Out `10110010`.
+
+### Test 2 — 16 bit
+
+| Alan | Değer |
+|------|--------|
+| Bit Uzunluğu | `16 bit` |
+| Veri Girişi | `1011001010110010` |
+| Bellek Adresi | `1` |
+| Hamming uzunluğu | 21 bit |
+| Yapay hata (bit no) | `10` |
+
+**Beklenen:** Sendrom ondalık `10`, Data Out `1011001010110010`.
+
+### Test 3 — 32 bit
+
+| Alan | Değer |
+|------|--------|
+| Bit Uzunluğu | `32 bit` |
+| Veri Girişi | `10110010101100101011001010110010` |
+| Bellek Adresi | `2` |
+| Hamming uzunluğu | 38 bit |
+| Yapay hata (bit no) | `15` |
+
+**Beklenen:** Sendrom ondalık `15`, Data Out girişteki 32 bit ile aynı.
+
+### Test kontrol listesi
+
+- [ ] Veri uzunluğu tam (8 / 16 / 32 karakter)
+- [ ] Kodlama sonrası bellek tablosunda satır görünüyor
+- [ ] Hatalı bit kırmızı; “Kullanıcının Bozduğu Bit” doğru
+- [ ] Sendrom ondalık = bozulan bit
+- [ ] Data Out = Data In
+- [ ] Üç test sonunda bellekte adres 0, 1, 2 dolu
+
+Demo videosu için adım adım rehber: [`docs/demo-sessiz-adimlar.md`](docs/demo-sessiz-adimlar.md)
+
+## Hamming kodu (özet)
+
+- Parite sayısı: 2^r ≥ m + r + 1
+- Parite pozisyonları: 1, 2, 4, 8, 16, …
+- Toplam kod uzunluğu: 8→12, 16→21, 32→38 bit
+- Sendrom 0 → hata yok; aksi halde hatalı bitin 1 tabanlı pozisyonu
+
+## Proje dosyaları
+
+| Dosya | Açıklama |
+|-------|----------|
+| `main.py` | Giriş noktası |
+| `ui.py` | PyQt5 arayüz |
+| `hamming_codec.py` | Kodlama / sendrom / düzeltme |
+| `faq.py` | Yardım penceresi |
+| `start_hamming.command` | macOS başlatıcı |
 
 ## Lisans
 
-Bu uygulama açık kaynaklıdır ve eğitim amaçlı kullanım için serbestçe dağıtılabilir.
+Eğitim amaçlı kullanım için açık kaynaklıdır.

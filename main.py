@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Hamming SEC-DED Simülatörü - Ana giriş noktası
+Hamming Error-Correcting Code Simülatörü - Ana giriş noktası
 """
 
 import sys

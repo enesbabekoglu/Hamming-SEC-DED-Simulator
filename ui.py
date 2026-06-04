@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Hamming SEC-DED Simülatörü için PyQt5 tabanlı kullanıcı arayüzü
+Hamming Error-Correcting Code Simülatörü için PyQt5 tabanlı kullanıcı arayüzü
 """
 
 import sys
-import math
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QComboBox, QLineEdit, QPushButton,
                              QTableWidget, QTableWidgetItem, QGroupBox, QGridLayout,
                              QMessageBox, QSpinBox, QFrame, QScrollArea)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QPalette, QFont
+from PyQt5.QtCore import Qt
 
 # Hamming kodlayıcı modülünü içe aktar
 from hamming_codec import HammingCodec
@@ -25,7 +23,7 @@ class HammingSimulatorUI(QMainWindow):
         super().__init__()
         
         # Ana pencere ayarları
-        self.setWindowTitle("Hamming SEC-DED Simülatörü - Enes Babekoğlu")
+        self.setWindowTitle("Hamming Error-Correcting Code Simülatörü - Enes Babekoğlu")
         self.setGeometry(100, 100, 1024, 768)
         
         # Ana widget ve düzen
@@ -56,6 +54,9 @@ class HammingSimulatorUI(QMainWindow):
         
         # Bellek simülasyonu paneli
         self.create_memory_panel()
+
+        # Sendrom ve düzeltme sonucu paneli
+        self.create_syndrome_panel()
         
         # Geçmiş paneli
         self.create_history_panel()
@@ -86,7 +87,7 @@ class HammingSimulatorUI(QMainWindow):
         # Veri girişi (ikili veya hex)
         data_label = QLabel("Veri Girişi:")
         self.data_input = QLineEdit()
-        self.data_input.setPlaceholderText("İkili (1010...) veya Hex (0x...) olarak veri girin")
+        self.data_input.setPlaceholderText("Seçilen uzunlukta ikili veri girin (örn. 10110010)")
         
         # Adres alanı
         addr_label = QLabel("Bellek Adresi:")
@@ -130,16 +131,16 @@ class HammingSimulatorUI(QMainWindow):
         data_bit_sample.setStyleSheet("background-color: #a0d0ff; padding: 2px 8px; border-radius: 4px; font-weight: bold;")
         parity_bit_sample = QLabel("Parite")
         parity_bit_sample.setStyleSheet("background-color: #a0ffa0; padding: 2px 8px; border-radius: 4px; font-weight: bold;")
-        global_bit_sample = QLabel("Genel Parite")
-        global_bit_sample.setStyleSheet("background-color: #ffffa0; padding: 2px 8px; border-radius: 4px; font-weight: bold;")
         error_bit_sample = QLabel("Hatalı")
         error_bit_sample.setStyleSheet("background-color: #ff8080; padding: 2px 8px; border-radius: 4px; font-weight: bold;")
+        numbering_info = QLabel("Bit numarası: soldan sağa N ... 1, bit 1 sağ uçtadır.")
+        numbering_info.setStyleSheet("color: #555;")
         
         info_layout.addWidget(bit_info)
         info_layout.addWidget(data_bit_sample)
         info_layout.addWidget(parity_bit_sample)
-        info_layout.addWidget(global_bit_sample)
         info_layout.addWidget(error_bit_sample)
+        info_layout.addWidget(numbering_info)
         info_layout.addStretch()
         
         self.bit_scroll = QScrollArea()
@@ -168,12 +169,12 @@ class HammingSimulatorUI(QMainWindow):
         # Değer etiketleri
         labels_layout = QHBoxLayout()
         
-        data_label = QLabel("Orijinal Veri:")
+        data_label = QLabel("Data In / Orijinal Veri:")
         self.data_value_label = QLabel("0")
         data_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.data_value_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         
-        encoded_label = QLabel("Kodlanmış Veri:")
+        encoded_label = QLabel("Hamming Kodu:")
         self.encoded_value_label = QLabel("0")
         encoded_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.encoded_value_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -185,8 +186,8 @@ class HammingSimulatorUI(QMainWindow):
         labels_layout.addWidget(self.encoded_value_label)
         
         # Bellek tablosu
-        self.memory_table = QTableWidget(0, 3)
-        self.memory_table.setHorizontalHeaderLabels(["Adres", "Kodlanmış Veri", "Orijinal Veri"])
+        self.memory_table = QTableWidget(0, 4)
+        self.memory_table.setHorizontalHeaderLabels(["Adres", "Veri Bitleri", "Hamming Kodu", "Uzunluk"])
         self.memory_table.horizontalHeader().setStretchLastSection(True)
         self.memory_table.setSelectionBehavior(QTableWidget.SelectRows)
         
@@ -194,6 +195,37 @@ class HammingSimulatorUI(QMainWindow):
         memory_layout.addWidget(self.memory_table)
         memory_group.setLayout(memory_layout)
         self.main_layout.addWidget(memory_group)
+
+    def create_syndrome_panel(self):
+        """Sendrom, hata teyidi ve Data Out alanlarını oluşturur."""
+        syndrome_group = QGroupBox("Sendrom, Compare ve Corrector")
+        syndrome_layout = QGridLayout()
+
+        self.syndrome_word_label = QLabel("-")
+        self.syndrome_decimal_label = QLabel("-")
+        self.detected_bit_label = QLabel("-")
+        self.injected_bit_label = QLabel("-")
+        self.confirmation_label = QLabel("-")
+        self.data_out_label = QLabel("-")
+        self.error_signal_label = QLabel("-")
+
+        syndrome_layout.addWidget(QLabel("Sendrom Kelimesi:"), 0, 0)
+        syndrome_layout.addWidget(self.syndrome_word_label, 0, 1)
+        syndrome_layout.addWidget(QLabel("Ondalık Karşılığı:"), 0, 2)
+        syndrome_layout.addWidget(self.syndrome_decimal_label, 0, 3)
+        syndrome_layout.addWidget(QLabel("Tespit Edilen Bit:"), 1, 0)
+        syndrome_layout.addWidget(self.detected_bit_label, 1, 1)
+        syndrome_layout.addWidget(QLabel("Kullanıcının Bozduğu Bit:"), 1, 2)
+        syndrome_layout.addWidget(self.injected_bit_label, 1, 3)
+        syndrome_layout.addWidget(QLabel("Teyit:"), 2, 0)
+        syndrome_layout.addWidget(self.confirmation_label, 2, 1, 1, 3)
+        syndrome_layout.addWidget(QLabel("Data Out:"), 3, 0)
+        syndrome_layout.addWidget(self.data_out_label, 3, 1)
+        syndrome_layout.addWidget(QLabel("Error Signal:"), 3, 2)
+        syndrome_layout.addWidget(self.error_signal_label, 3, 3)
+
+        syndrome_group.setLayout(syndrome_layout)
+        self.main_layout.addWidget(syndrome_group)
         
     def create_history_panel(self):
         """İşlem geçmişi panelini oluşturur"""
@@ -207,7 +239,7 @@ class HammingSimulatorUI(QMainWindow):
         self.history_table.setMinimumHeight(100)
         
         # Telif hakkı etiketi
-        copyright_label = QLabel(" 2025 Enes Babekoğlu - Hamming SEC-DED Simülatörü")
+        copyright_label = QLabel(" 2026 Enes Babekoğlu - Hamming Error-Correcting Code Simülatörü")
         copyright_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         copyright_label.setStyleSheet("color: gray; font-size: 10px;")
         
@@ -226,8 +258,17 @@ class HammingSimulatorUI(QMainWindow):
         
         self.bit_boxes = []
         
-        # Bit kutularını oluştur
-        for i in range(total_bits):
+        data_positions = [
+            pos for pos in range(1, total_bits + 1)
+            if not self.codec._is_power_of_two(pos)
+        ]
+        data_index_by_position = {
+            position: index + 1
+            for index, position in enumerate(data_positions)
+        }
+
+        # Kutular ödevdeki tablo gibi soldan sağa N ... 1 olarak gösterilir.
+        for position in range(total_bits, 0, -1):
             bit_frame = QFrame()
             bit_frame.setFrameShape(QFrame.NoFrame)
             bit_frame.setFixedSize(50, 70)  # Daha büyük kutular
@@ -238,7 +279,7 @@ class HammingSimulatorUI(QMainWindow):
             layout.setSpacing(0)
             
             # Bit pozisyon etiketi
-            pos_label = QLabel(str(i))
+            pos_label = QLabel(str(position))
             pos_label.setAlignment(Qt.AlignCenter)
             pos_label.setStyleSheet("font-size: 10px; color: #666; margin-bottom: 2px;")
             
@@ -257,18 +298,13 @@ class HammingSimulatorUI(QMainWindow):
             bit_label.setStyleSheet("font-size: 16px; font-weight: bold;")
             value_layout.addWidget(bit_label)
             
-            # Bit tipi etiketi
-            if i == 0:
-                bit_type = 'global_parity'
-                type_text = "GP"
-                bit_value_frame.setStyleSheet('background-color: #ffffa0; border-radius: 6px; border: 1px solid #e0e000;')  # Açık sarı
-            elif i > 0 and self.codec.is_parity_bit(i):
+            if self.codec._is_power_of_two(position):
                 bit_type = 'parity'
-                type_text = f"P{int(math.log2(i))}"
+                type_text = f"P{position}"
                 bit_value_frame.setStyleSheet('background-color: #a0ffa0; border-radius: 6px; border: 1px solid #00c000;')  # Açık yeşil
             else:
                 bit_type = 'data'
-                type_text = "D"
+                type_text = f"D{data_index_by_position[position]}"
                 bit_value_frame.setStyleSheet('background-color: #a0d0ff; border-radius: 6px; border: 1px solid #0080ff;')  # Açık mavi
             
             type_label = QLabel(type_text)
@@ -285,7 +321,7 @@ class HammingSimulatorUI(QMainWindow):
                 'frame': bit_frame,
                 'value_frame': bit_value_frame,
                 'label': bit_label,
-                'position': i,
+                'position': position,
                 'type': bit_type,
                 'value': 0
             })
@@ -293,36 +329,32 @@ class HammingSimulatorUI(QMainWindow):
             # Bit kutusunu düzene ekle
             self.bit_layout.addWidget(bit_frame)
     
-    def update_bit_display(self, bit_values=None, error_position=None):
+    def update_bit_display(self, encoded_value=None, error_position=None):
         """Bit kutularını günceller"""
-        if bit_values is None and not self.current_data['encoded']:
-            return
-        
-        if bit_values is None:
-            bit_values = self.current_data['encoded']
+        if encoded_value is None:
+            encoded_value = self.current_data.get('encoded')
+
+        if encoded_value is None:
+            encoded_value = 0
         
         # Her bit için değeri güncelle
-        for i, bit_box in enumerate(self.bit_boxes):
-            if i < len(bit_values):
-                value = bit_values[i]
-                bit_box['value'] = value
-                bit_box['label'].setText(str(value))
-                
-                # Hata enjekte edilmiş biti kırmızı yap
-                if error_position is not None and i == error_position:
-                    bit_box['value_frame'].setStyleSheet('background-color: #ff8080; border-radius: 6px; border: 1px solid #d00000;')  # Kırmızı
-                    bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
+        for bit_box in self.bit_boxes:
+            position = bit_box['position']
+            value = 1 if encoded_value & (1 << (position - 1)) else 0
+            bit_box['value'] = value
+            bit_box['label'].setText(str(value))
+
+            # Hata enjekte edilmiş biti kırmızı yap
+            if error_position is not None and position == error_position:
+                bit_box['value_frame'].setStyleSheet('background-color: #ff8080; border-radius: 6px; border: 1px solid #d00000;')  # Kırmızı
+                bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
+            else:
+                # Normal renkler
+                if bit_box['type'] == 'parity':
+                    bit_box['value_frame'].setStyleSheet('background-color: #a0ffa0; border-radius: 6px; border: 1px solid #00c000;')  # Açık yeşil
                 else:
-                    # Normal renkler
-                    if bit_box['type'] == 'global_parity':
-                        bit_box['value_frame'].setStyleSheet('background-color: #ffffa0; border-radius: 6px; border: 1px solid #e0e000;')  # Açık sarı
-                        bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: black;")
-                    elif bit_box['type'] == 'parity':
-                        bit_box['value_frame'].setStyleSheet('background-color: #a0ffa0; border-radius: 6px; border: 1px solid #00c000;')  # Açık yeşil
-                        bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: black;")
-                    else:  # data
-                        bit_box['value_frame'].setStyleSheet('background-color: #a0d0ff; border-radius: 6px; border: 1px solid #0080ff;')  # Açık mavi
-                        bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: black;")
+                    bit_box['value_frame'].setStyleSheet('background-color: #a0d0ff; border-radius: 6px; border: 1px solid #0080ff;')  # Açık mavi
+                bit_box['label'].setStyleSheet("font-size: 16px; font-weight: bold; color: black;")
     
     def add_history_item(self, operation, status):
         """Geçmiş tablosuna yeni bir giriş ekler"""
@@ -345,6 +377,59 @@ class HammingSimulatorUI(QMainWindow):
         
         # Son eklenen satıra kaydır
         self.history_table.scrollToBottom()
+
+    def format_data_value(self, value):
+        """Veri alanını seçili veri uzunluğunda ikili biçimde döndürür."""
+        if value is None:
+            return "-"
+        return bin(value)[2:].zfill(self.codec.data_bits)
+
+    def format_encoded_value(self, value):
+        """Kod kelimesini seçili Hamming uzunluğunda ikili biçimde döndürür."""
+        if value is None:
+            return "-"
+        return self.codec.get_bit_string(value)
+
+    def update_value_labels(self, data_value=None, encoded_value=None):
+        """Bellek panelindeki Data In ve Hamming kodu etiketlerini günceller."""
+        self.data_value_label.setText(self.format_data_value(data_value))
+        self.encoded_value_label.setText(self.format_encoded_value(encoded_value))
+
+    def reset_syndrome_panel(self):
+        """Sendrom panelini başlangıç durumuna döndürür."""
+        self.syndrome_word_label.setText("-")
+        self.syndrome_decimal_label.setText("-")
+        self.detected_bit_label.setText("-")
+        self.injected_bit_label.setText("-")
+        self.confirmation_label.setText("-")
+        self.data_out_label.setText("-")
+        self.error_signal_label.setText("-")
+
+    def update_syndrome_panel(self, result, injected_position=None):
+        """Hata tespiti sonucunu sendrom paneline yansıtır."""
+        detected_position = result.get('error_position')
+        data_out = self.format_data_value(result.get('original_data'))
+
+        self.syndrome_word_label.setText(result.get('syndrome_bits', "-"))
+        self.syndrome_decimal_label.setText(str(result.get('syndrome', "-")))
+        self.detected_bit_label.setText(str(detected_position) if detected_position is not None else "-")
+        self.injected_bit_label.setText(str(injected_position) if injected_position is not None else "-")
+        self.data_out_label.setText(data_out)
+
+        if result['error_type'] == 'none':
+            self.error_signal_label.setText("0 - hata yok")
+            self.confirmation_label.setText("Hata yok; Data Out, Data In ile aynı.")
+        elif result['error_type'] == 'single':
+            self.error_signal_label.setText("1 - tek bit hatası")
+            if injected_position is None:
+                self.confirmation_label.setText("Tek bit hatası tespit edildi ve düzeltildi.")
+            elif injected_position == detected_position:
+                self.confirmation_label.setText("Hata doğru tespit edildi.")
+            else:
+                self.confirmation_label.setText("Tespit edilen bit, yapay hata bitiyle uyuşmuyor.")
+        else:
+            self.error_signal_label.setText("1 - belirsiz hata")
+            self.confirmation_label.setText("Sendrom geçerli bit aralığı dışında; düzeltme yapılmadı.")
     
     def update_memory_table(self):
         """Bellek tablosunu günceller"""
@@ -359,13 +444,12 @@ class HammingSimulatorUI(QMainWindow):
             # Adres
             self.memory_table.setItem(row, 0, QTableWidgetItem(str(addr)))
             
-            # Kodlanmış veri
-            encoded_hex = hex(data['encoded'])
-            self.memory_table.setItem(row, 1, QTableWidgetItem(encoded_hex))
-            
-            # Orijinal veri
-            original_hex = hex(data['original'])
-            self.memory_table.setItem(row, 2, QTableWidgetItem(original_hex))
+            data_bits = data.get('data_bits', self.bit_length)
+            row_codec = HammingCodec(data_bits)
+
+            self.memory_table.setItem(row, 1, QTableWidgetItem(bin(data['original'])[2:].zfill(data_bits)))
+            self.memory_table.setItem(row, 2, QTableWidgetItem(row_codec.get_bit_string(data['encoded'])))
+            self.memory_table.setItem(row, 3, QTableWidgetItem(f"{data_bits} bit"))
         
         # Son eklenen satıra kaydır
         if self.memory_table.rowCount() > 0:
@@ -402,12 +486,26 @@ class HammingSimulatorUI(QMainWindow):
         self.create_bit_boxes(self.codec.total_bits)
         
         # Sıfır değeri göster
-        bit_values = [0] * self.codec.total_bits
-        self.update_bit_display(bit_values)
+        self.current_data = {
+            'original': None,
+            'encoded': None,
+            'address': None,
+            'error_position': None
+        }
+        self.update_bit_display(0)
+        self.update_value_labels()
+        self.reset_syndrome_panel()
+        self.data_input.setPlaceholderText(
+            f"{self.bit_length} bit ikili veri girin (örn. {'0' * self.bit_length})"
+        )
             
     def parse_data_input(self):
         """Kullanıcının girdiği veriyi işler"""
         data_str = self.data_input.text().strip()
+
+        if not data_str:
+            QMessageBox.critical(self, "Hata", "Veri girişi boş olamaz.")
+            return None
         
         try:
             # Hex girişi (0x ile başlıyorsa)
@@ -415,19 +513,17 @@ class HammingSimulatorUI(QMainWindow):
                 value = int(data_str, 16)
             # İkili giriş
             else:
-                # İkili sayıyı ondalığa çevir
-                data_str = ''.join(c for c in data_str if c in '01')  # Sadece 0 ve 1'leri kabul et
-                if not data_str:
-                    raise ValueError("Geçersiz ikili veri girişi")
+                if any(c not in '01' for c in data_str):
+                    raise ValueError("İkili veri yalnızca 0 ve 1 karakterlerinden oluşmalıdır.")
+                if len(data_str) != self.codec.data_bits:
+                    raise ValueError(
+                        f"{self.codec.data_bits} bit seçiliyken tam {self.codec.data_bits} karakter girilmelidir."
+                    )
                 value = int(data_str, 2)
                 
             # Veriyi bit sınırına göre kontrol et
             if value.bit_length() > self.codec.data_bits:
-                QMessageBox.warning(self, "Uyarı", f"Veri {self.codec.data_bits} biti aşıyor!"
-                                     f"\nEn anlamlı bitler kesilecek.")
-                # En anlamlı bitleri kes
-                mask = (1 << self.codec.data_bits) - 1
-                value &= mask
+                raise ValueError(f"Veri {self.codec.data_bits} biti aşamaz.")
                 
             return value
             
@@ -458,26 +554,26 @@ class HammingSimulatorUI(QMainWindow):
             }
             
             # Bit kutularını güncelle
-            positions = self.codec.get_data_and_parity_positions()
-            self.update_bit_display([int(b) for b in bin(encoded_data)[2:].zfill(self.codec.total_bits)])
+            self.update_bit_display(encoded_data)
             
             # Belleğe yaz
             self.memory[address] = {
                 'original': data,
-                'encoded': encoded_data
+                'encoded': encoded_data,
+                'data_bits': self.bit_length
             }
             
             # Tabloları güncelle
             self.update_memory_table()
             
             # Değer etiketlerini güncelle
-            self.data_value_label.setText(hex(data))
-            self.encoded_value_label.setText(hex(encoded_data))
+            self.update_value_labels(data, encoded_data)
+            self.reset_syndrome_panel()
             
             # Geçmişe ekle
             self.add_history_item(
                 f"{address} adresine yazma", 
-                f"{hex(data)} kodlandı: {hex(encoded_data)}"
+                f"{self.format_data_value(data)} kodlandı: {self.format_encoded_value(encoded_data)}"
             )
             
             # Durum mesajı
@@ -493,6 +589,11 @@ class HammingSimulatorUI(QMainWindow):
         if address in self.memory:
             # Bellekteki veriyi al
             data = self.memory[address]
+
+            data_bits = data.get('data_bits', self.bit_length)
+            if data_bits != self.bit_length:
+                combo_index = {8: 0, 16: 1, 32: 2}[data_bits]
+                self.bit_combo.setCurrentIndex(combo_index)
             
             # Mevcut veriyi güncelle
             self.current_data = {
@@ -503,17 +604,16 @@ class HammingSimulatorUI(QMainWindow):
             }
             
             # Bit kutularını güncelle
-            positions = self.codec.get_data_and_parity_positions()
-            self.update_bit_display([int(b) for b in bin(data['encoded'])[2:].zfill(self.codec.total_bits)])
+            self.update_bit_display(data['encoded'])
             
             # Değer etiketlerini güncelle
-            self.data_value_label.setText(hex(data['original']))
-            self.encoded_value_label.setText(hex(data['encoded']))
+            self.update_value_labels(data['original'], data['encoded'])
+            self.reset_syndrome_panel()
             
             # Geçmişe ekle
             self.add_history_item(
                 f"{address} adresinden okuma", 
-                f"Kodlanmış: {hex(data['encoded'])}, Orijinal: {hex(data['original'])}"
+                f"Kodlanmış: {self.format_encoded_value(data['encoded'])}, Orijinal: {self.format_data_value(data['original'])}"
             )
             
             # Durum mesajı
@@ -524,15 +624,24 @@ class HammingSimulatorUI(QMainWindow):
     
     def inject_error(self):
         """Kodlanmış veride bir bit hatası oluşturur"""
-        if not self.current_data['encoded']:
+        if self.current_data['encoded'] is None:
             QMessageBox.warning(self, "Uyarı", "Önce bir veri kodlayın veya bellekten okuyun!")
+            return
+
+        if self.current_data['error_position'] is not None:
+            QMessageBox.warning(
+                self,
+                "Uyarı",
+                "Mevcut yapay hata düzeltilmeden yeni hata oluşturulamaz."
+            )
             return
             
         # Hata enjekte etmek için bir bit seçim penceresi göster
         error_pos, ok = QInputBox.getInt(
             self, "Hata Oluştur", 
-            f"Hata enjekte edilecek bit pozisyonunu girin (0-{self.codec.total_bits-1}):",
-            0, 0, self.codec.total_bits-1, 1
+            f"Hata enjekte edilecek bit pozisyonunu girin (1-{self.codec.total_bits}).\n"
+            "Bit 1 sağ uçtaki bittir.",
+            1, 1, self.codec.total_bits, 1
         )
         
         if not ok:
@@ -556,10 +665,14 @@ class HammingSimulatorUI(QMainWindow):
                 self.memory[address]['encoded'] = error_data
             
             # Bit kutularını güncelle
-            self.update_bit_display([int(b) for b in bin(error_data)[2:].zfill(self.codec.total_bits)], error_pos)
+            self.update_bit_display(error_data, error_pos)
             
             # Değer etiketini güncelle
-            self.encoded_value_label.setText(hex(error_data))
+            self.update_value_labels(self.current_data['original'], error_data)
+            self.reset_syndrome_panel()
+            self.injected_bit_label.setText(str(error_pos))
+            self.error_signal_label.setText("Yapay hata oluşturuldu")
+            self.confirmation_label.setText("Tespit bekleniyor")
             
             # Tabloları güncelle
             self.update_memory_table()
@@ -583,28 +696,38 @@ class HammingSimulatorUI(QMainWindow):
     
     def detect_and_correct_error(self):
         """Hamming kodu ile hataları tespit eder ve düzeltir"""
-        if not self.current_data['encoded']:
+        if self.current_data['encoded'] is None:
             QMessageBox.warning(self, "Uyarı", "Önce bir veri kodlayın veya bellekten okuyun!")
             return
             
         # Mevcut veriyi al
         encoded_data = self.current_data['encoded']
         address = self.current_data['address']
+        injected_position = self.current_data['error_position']
         
         # Hata tespiti ve düzeltmesi
         try:
             result = self.codec.detect_and_correct(encoded_data)
+            self.update_syndrome_panel(result, injected_position)
             
             # Sonuçları göster
             message = f"Hata Tespiti Sonucu:\n"
-            message += f"Hata Türü: {result['error_type']}\n"
+            message += f"Sendrom Kelimesi: {result['syndrome_bits']}\n"
+            message += f"Sendrom Ondalık: {result['syndrome']}\n"
             
             if result['error_position'] is not None:
-                message += f"Hata Pozisyonu: {result['error_position']}\n"
+                message += f"Tespit Edilen Hatalı Bit: {result['error_position']}\n"
+
+            if injected_position is not None:
+                message += f"Kullanıcının Bozduğu Bit: {injected_position}\n"
+                if injected_position == result['error_position']:
+                    message += "Sonuç: Hata doğru tespit edildi.\n"
+                else:
+                    message += "Sonuç: Tespit edilen bit, bozulan bitle uyuşmuyor.\n"
                 
             if result['error_type'] == 'single':
-                message += f"Düzeltilmiş Veri: {hex(result['corrected_data'])}\n"
-                message += f"Orijinal Veri: {hex(result['original_data'])}"
+                message += f"Düzeltilmiş Hamming Kodu: {self.format_encoded_value(result['corrected_data'])}\n"
+                message += f"Data Out: {self.format_data_value(result['original_data'])}"
                 
                 # Belleği ve mevcut veriyi güncelle
                 self.current_data['encoded'] = result['corrected_data']
@@ -616,11 +739,10 @@ class HammingSimulatorUI(QMainWindow):
                     self.memory[address]['original'] = result['original_data']
                     
                 # Bit kutularını güncelle
-                self.update_bit_display([int(b) for b in bin(result['corrected_data'])[2:].zfill(self.codec.total_bits)])
+                self.update_bit_display(result['corrected_data'])
                 
                 # Değer etiketlerini güncelle
-                self.data_value_label.setText(hex(result['original_data']))
-                self.encoded_value_label.setText(hex(result['corrected_data']))
+                self.update_value_labels(result['original_data'], result['corrected_data'])
                 
                 # Tabloları güncelle
                 self.update_memory_table()
@@ -628,25 +750,23 @@ class HammingSimulatorUI(QMainWindow):
                 # Geçmişe ekle
                 self.add_history_item(
                     "Hata Düzeltildi", 
-                    f"Pozisyon {result['error_position']}, Veri: {hex(result['original_data'])}"
+                    f"Sendrom {result['syndrome_bits']} => bit {result['error_position']}, Data Out: {self.format_data_value(result['original_data'])}"
                 )
                 
-            elif result['error_type'] == 'double':
-                message += "İki bitlik hata tespit edildi, düzeltilemiyor!"
-                
-                # Geçmişe ekle
-                self.add_history_item(
-                    "Çift Hata Tespiti", 
-                    "Düzeltilemiyor"
-                )
-                
-            else:  # Hata yok
+            elif result['error_type'] == 'none':
                 message += "Veri sağlıklı, hata yok."
                 
                 # Geçmişe ekle
                 self.add_history_item(
                     "Hata Kontrolü", 
                     "Hata yok"
+                )
+
+            else:
+                message += "Sendrom geçerli bit aralığı dışında; düzeltme yapılmadı."
+                self.add_history_item(
+                    "Belirsiz Hata",
+                    f"Sendrom {result['syndrome_bits']} geçerli aralık dışında"
                 )
                 
             # Sonuç mesajını göster
@@ -657,8 +777,8 @@ class HammingSimulatorUI(QMainWindow):
                 self.statusBar().showMessage("Veri sağlam, hata tespit edilmedi")
             elif result['error_type'] == 'single':
                 self.statusBar().showMessage(f"Tek bit hatası düzeltildi: Pozisyon {result['error_position']}")
-            elif result['error_type'] == 'double':
-                self.statusBar().showMessage("Çift bit hatası tespit edildi! Düzeltilemiyor.")
+            else:
+                self.statusBar().showMessage("Belirsiz hata tespit edildi.")
                 
         except Exception as e:
             QMessageBox.critical(self, "Hata", f"Hata tespit ve düzeltme işlemi hatası: {str(e)}")

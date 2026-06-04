@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Hamming SEC-DED Simülatörü için Sık Sorulan Sorular (FAQ) modülü
+Hamming Error-Correcting Code Simülatörü için Sık Sorulan Sorular (FAQ) modülü
 """
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                             QPushButton, QScrollArea, QWidget, QGroupBox, QTabWidget)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont
 
 class FAQDialog(QDialog):
     """FAQ Penceresi"""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Hamming SEC-DED Simülatörü - Sık Sorulan Sorular")
+        self.setWindowTitle("Hamming Error-Correcting Code Simülatörü - Sık Sorulan Sorular")
         self.setMinimumSize(700, 600)
         self.setup_ui()
 
@@ -22,7 +22,7 @@ class FAQDialog(QDialog):
         layout = QVBoxLayout(self)
         
         # Başlık
-        title_label = QLabel("Hamming SEC-DED Simülatörü - Yardım ve FAQ")
+        title_label = QLabel("Hamming Error-Correcting Code Simülatörü - Yardım ve FAQ")
         title_label.setAlignment(Qt.AlignCenter)
         title_font = QFont()
         title_font.setPointSize(16)
@@ -55,7 +55,8 @@ class FAQDialog(QDialog):
         intro_layout = QVBoxLayout()
         intro_text = """
         <h3>Simülatörün Temel Kullanımı</h3>
-        <p>Hamming SEC-DED Simülatörü, veri iletimi sırasında oluşabilecek hataların tespiti ve düzeltilmesi için 
+        <p>Hamming Error-Correcting Code Simülatörü, veri iletimi sırasında oluşabilecek tek bit hatalarının
+        sendrom kelimesi ile tespiti ve düzeltilmesi için 
         kullanılan Hamming kodlarının çalışma prensiplerini görselleştiren bir uygulamadır.</p>
         
         <h3>Temel Adımlar</h3>
@@ -79,14 +80,14 @@ class FAQDialog(QDialog):
         <p>Açılır listeden 8, 16 veya 32 bit veri uzunluğunu seçin. Bu, kodlanacak veri bitlerinin sayısını belirler.</p>
         
         <h3>2. Veri Girişi</h3>
-        <p>Veri giriş alanına ikili formatta (örn. 1010) veya onaltılık formatta (örn. 0x1A) veri girin. 
-        Seçilen bit uzunluğundan daha büyük veriler otomatik olarak kesilir.</p>
+        <p>Veri giriş alanına seçilen uzunlukta ikili veri girin. Örneğin 8 bit seçiliyken tam 8 karakterlik
+        10110010 gibi bir değer kullanılmalıdır. Hex giriş de desteklenir ancak seçilen bit uzunluğunu aşamaz.</p>
         
         <h3>3. Bellek Adresi</h3>
         <p>Verinizin yazılacağı bellek adresini seçin (0-1023 arası).</p>
         
         <h3>4. Kodlama ve Belleğe Yazma</h3>
-        <p>"Kodla ve Belleğe Yaz" düğmesine tıklayarak veriyi Hamming SEC-DED algoritması ile kodlayın 
+        <p>"Kodla ve Belleğe Yaz" düğmesine tıklayarak veriyi standart Hamming algoritması ile kodlayın 
         ve belleğe yazın. Kodlanmış veri bit görselleştirme panelinde renkli kutular olarak gösterilir.</p>
         
         <h3>5. Bellekten Okuma</h3>
@@ -97,8 +98,8 @@ class FAQDialog(QDialog):
         İletişim kutusunda hangi bit pozisyonunda hata oluşturmak istediğinizi belirleyin.</p>
         
         <h3>7. Hata Tespiti ve Düzeltme</h3>
-        <p>"Hata Tespit/Düzelt" düğmesine tıklayarak Hamming algoritmasının hata tespiti ve 
-        düzeltme işlemini gerçekleştirin. Sonuçlar bir iletişim kutusunda gösterilir.</p>
+        <p>"Hata Tespit/Düzelt" düğmesine tıklayarak sendrom hesabını, tespit edilen bit pozisyonunu,
+        kullanıcı tarafından bozulan bit ile teyidi ve düzeltilmiş Data Out değerini görüntüleyin.</p>
         """
         steps_label = QLabel(steps_text)
         steps_label.setWordWrap(True)
@@ -114,17 +115,22 @@ class FAQDialog(QDialog):
         <ul>
             <li><b>Açık Mavi</b>: Veri bitleri</li>
             <li><b>Açık Yeşil</b>: Parite bitleri</li>
-            <li><b>Açık Sarı</b>: Genel parite biti</li>
             <li><b>Kırmızı</b>: Hata enjekte edilmiş bitler</li>
         </ul>
+        <p>Bit numaraları ödevdeki tabloya göre gösterilir: bit 1 sağ uçtaki en düşük anlamlı bittir.</p>
         
         <h3>Bellek Simülasyonu</h3>
         <p>Bellek tablosunda şu bilgiler görüntülenir:</p>
         <ul>
             <li><b>Adres</b>: Bellek adresi</li>
-            <li><b>Kodlanmış Veri</b>: Hamming kodu ile kodlanmış veri (onaltılık)</li>
-            <li><b>Orijinal Veri</b>: Kodlanmadan önceki orijinal veri (onaltılık)</li>
+            <li><b>Veri Bitleri</b>: Kodlanmadan önceki Data In değeri (ikili)</li>
+            <li><b>Hamming Kodu</b>: Parite bitleri eklenmiş kod kelimesi (ikili)</li>
+            <li><b>Uzunluk</b>: Verinin 8, 16 veya 32 bit olduğunu gösterir</li>
         </ul>
+
+        <h3>Sendrom ve Data Out Paneli</h3>
+        <p>Bu panel sendrom kelimesini, ondalık sendrom değerini, tespit edilen biti, kullanıcının bozduğu
+        biti, teyit sonucunu, Data Out değerini ve Error Signal durumunu gösterir.</p>
         
         <h3>İşlem Geçmişi</h3>
         <p>Gerçekleştirilen tüm işlemlerin kaydını tutar:</p>
@@ -162,14 +168,15 @@ class FAQDialog(QDialog):
         <p>Hamming kodları, 1950'lerde Richard Hamming tarafından geliştirilen ve veri iletimi sırasında 
         oluşabilecek hataların tespiti ve düzeltilmesi için kullanılan bir hata düzeltme kodudur.</p>
         
-        <h3>SEC-DED (Single Error Correction - Double Error Detection)</h3>
-        <p>Bu simülatörde kullanılan Hamming SEC-DED, tek bit hatalarını düzeltebilen ve çift bit hatalarını 
-        tespit edebilen genişletilmiş bir Hamming kodudur.</p>
+        <h3>Standart Hamming Kodu</h3>
+        <p>Bu simülatör ödevde istenen standart Hamming yapısını kullanır. 8 bit veri için 4 parite bitiyle
+        12 bit, 16 bit veri için 5 parite bitiyle 21 bit, 32 bit veri için 6 parite bitiyle 38 bit kod kelimesi
+        oluşturulur.</p>
         
         <h3>Temel Çalışma Prensibi</h3>
         <p>Hamming kodları, veri içine belirli pozisyonlara ek parite bitleri ekleyerek çalışır. 
         Bu parite bitleri, belirli veri bitlerinin paritesini (çift/tek sayıda 1 olup olmadığını) kontrol eder.</p>
-        <p>SEC-DED versiyonu, ek bir genel parite biti daha ekleyerek çift bit hatalarını tespit eder.</p>
+        <p>Sendrom kelimesinin ondalık karşılığı, tek bit hata varsa hatalı bitin 1 tabanlı pozisyonunu verir.</p>
         """
         theory_label = QLabel(theory_text)
         theory_label.setWordWrap(True)
@@ -185,14 +192,13 @@ class FAQDialog(QDialog):
         <p><b>2^r ≥ m + r + 1</b></p>
         <p>Yani:</p>
         <ul>
-            <li>8 bit veri için 4 parite biti + 1 genel parite biti = 13 bit toplam</li>
-            <li>16 bit veri için 5 parite biti + 1 genel parite biti = 22 bit toplam</li>
-            <li>32 bit veri için 6 parite biti + 1 genel parite biti = 39 bit toplam</li>
+            <li>8 bit veri için 4 parite biti = 12 bit toplam</li>
+            <li>16 bit veri için 5 parite biti = 21 bit toplam</li>
+            <li>32 bit veri için 6 parite biti = 38 bit toplam</li>
         </ul>
         
         <h3>Parite Bitlerinin Pozisyonları</h3>
         <p>Parite bitleri 2'nin kuvvetleri olan pozisyonlara yerleştirilir: 1, 2, 4, 8, 16, 32, ...</p>
-        <p>Genel parite biti genellikle en yüksek bitli pozisyona (örn. pozisyon 0) yerleştirilir.</p>
         
         <h3>Parite Biti Hesaplama</h3>
         <p>Her parite biti, belirli bir veri biti kümesinin paritesini kontrol eder:</p>
@@ -203,7 +209,6 @@ class FAQDialog(QDialog):
             <li>Parite bit 8: 8, 9, 10, 11, ... pozisyonlarını kontrol eder</li>
             <li>Ve bu böyle devam eder</li>
         </ul>
-        <p>Genel parite biti tüm bitlerin (kendisi dahil) paritesini kontrol eder.</p>
         """
         parity_label = QLabel(parity_text)
         parity_label.setWordWrap(True)
@@ -215,24 +220,22 @@ class FAQDialog(QDialog):
         error_layout = QVBoxLayout()
         error_text = """
         <h3>Hata Tespiti</h3>
-        <p>Hamming SEC-DED kodu, şu şekilde hataları tespit eder:</p>
+        <p>Standart Hamming kodu, şu şekilde tek bit hatalarını tespit eder:</p>
         <ol>
             <li>Alıcı, her parite bit için parite hesaplar ve hatalı olanları belirler.</li>
             <li>Hatalı parite bitleri, 'sendrom' olarak adlandırılan bir değer oluşturur.</li>
-            <li>Genel parite biti ayrıca kontrol edilir.</li>
+            <li>Sendromun ondalık karşılığı hatalı bit pozisyonudur.</li>
         </ol>
         
         <h3>Hata Düzeltme</h3>
         <p>Hata tespiti sonuçlarına göre:</p>
         <ul>
-            <li><b>Genel parite doğru, sendrom sıfır</b>: Hata yok</li>
-            <li><b>Genel parite yanlış, sendrom sıfır değil</b>: Tek bit hatası var, sendrom değeri hatalı bitin pozisyonunu gösterir</li>
-            <li><b>Genel parite doğru, sendrom sıfır değil</b>: Çift bit hatası tespit edildi, düzeltilemiyor</li>
-            <li><b>Genel parite yanlış, sendrom sıfır</b>: Genel parite bitinde hata var</li>
+            <li><b>Sendrom 0</b>: Hata yok</li>
+            <li><b>Sendrom 1 ile toplam bit sayısı arasında</b>: Tek bit hatası var; ilgili bit ters çevrilerek düzeltilir</li>
         </ul>
         
         <h3>Simülatörde Görselleştirme</h3>
-        <p>Bu simülatör, Hamming SEC-DED kodlaması ve hata tespiti/düzeltme sürecini adım adım görselleştirir:</p>
+        <p>Bu simülatör, Hamming kodlaması ve hata tespiti/düzeltme sürecini adım adım görselleştirir:</p>
         <ul>
             <li>Veri ve parite bitleri farklı renklerle gösterilir</li>
             <li>Hata enjekte edilmiş bitler kırmızı renkte gösterilir</li>
@@ -266,23 +269,22 @@ class FAQDialog(QDialog):
         <p>Cevap: Hamming kodları, veri iletişimi ve depolama sistemlerinde hata tespiti ve düzeltme için kullanılır. 
         Bilgisayar belleği, iletişim kanalları ve uzay araçları gibi çeşitli uygulamalarda güvenilir veri iletimi sağlar.</p>
         
-        <h3>Soru: Hamming SEC-DED, kaç tane bit hatasını düzeltebilir?</h3>
-        <p>Cevap: Hamming SEC-DED (Single Error Correction - Double Error Detection) tek bit hatalarını 
-        düzeltebilir ve çift bit hatalarını tespit edebilir ancak çift bit hatalarını düzeltemez.</p>
+        <h3>Soru: Standart Hamming kodu kaç tane bit hatasını düzeltebilir?</h3>
+        <p>Cevap: Standart Hamming kodu tek bit hatalarını sendrom kelimesi ile tespit edip düzeltebilir.
+        Bu ödevdeki simülatör yapay olarak seçilen tek bit hatasını göstermek için tasarlanmıştır.</p>
         
         <h3>Soru: Parite bitleri nedir ve nasıl çalışır?</h3>
         <p>Cevap: Parite bitleri, belirli bir veri biti grubunun paritesini (içindeki 1'lerin sayısının çift 
         veya tek olması) kontrol eden ek bitlerdir. Veri iletildiğinde, alıcı parite bitlerini tekrar hesaplar 
         ve orijinal parite bitleriyle karşılaştırır. Herhangi bir uyuşmazlık, bir hata olduğunu gösterir.</p>
         
-        <h3>Soru: SEC-DED kodlamasındaki genel parite biti ne işe yarar?</h3>
-        <p>Cevap: Genel parite biti, tüm veri ve parite bitlerinin genel paritesini kontrol eder. 
-        Bu ek bit, çift bit hatalarının tespitini mümkün kılar (bu olmadan Hamming kodu çift bit hatalarını 
-        tespit edemez, yanlış bir şekilde düzeltme yapabilir).</p>
+        <h3>Soru: Sendrom kelimesi neyi gösterir?</h3>
+        <p>Cevap: Sendrom kelimesindeki bitler, hangi parite kontrollerinin uyuşmadığını gösterir.
+        Sendromun ondalık karşılığı 0 ise hata yoktur; 0 dışında ise bu değer hatalı bit pozisyonudur.</p>
         
-        <h3>Soru: Hamming SEC-DED kodu gerçek dünyada nerede kullanılır?</h3>
-        <p>Cevap: Hamming SEC-DED kodları, ECC (Error Correcting Code) bellekler, veri iletişim sistemleri, 
-        uydu iletişimi ve uzay araçları gibi hata toleranslı sistemlerde yaygın olarak kullanılır.</p>
+        <h3>Soru: Bit 1 hangi taraftadır?</h3>
+        <p>Cevap: Ödevdeki tabloyla uyumlu olarak bit 1 sağ uçtadır. Simülatörde bitler soldan sağa
+        N ... 1 şeklinde gösterilir.</p>
         
         <h3>Soru: Veri uzunluğunu (8/16/32 bit) değiştirdiğimde ne olur?</h3>
         <p>Cevap: Veri uzunluğunu değiştirmek, kodlama için gereken parite bit sayısını değiştirir. 
@@ -294,8 +296,8 @@ class FAQDialog(QDialog):
         kapasitesine sahiptir, ancak daha fazla hesaplama gerektirir.</p>
         
         <h3>Soru: Bu simülatör ne öğretiyor?</h3>
-        <p>Cevap: Bu simülatör, Hamming SEC-DED kodlamasının temel prensiplerini, parite bit hesaplamalarını, 
-        hata enjeksiyonunu ve hata tespiti/düzeltme mekanizmalarını görsel olarak anlamanıza yardımcı olur.</p>
+        <p>Cevap: Bu simülatör, Hamming kodlamasının temel prensiplerini, parite bit hesaplamalarını, 
+        hata enjeksiyonunu, sendrom hesabını, hata teyidini ve Data Out düzeltmesini görsel olarak anlamanıza yardımcı olur.</p>
         """
         faq_label = QLabel(faq_text)
         faq_label.setWordWrap(True)

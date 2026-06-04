@@ -1,2 +1,2 @@
-PyQt5==5.15.7
-numpy==1.24.3
+# 5.15.7 kaynak koddan derlenir (macOS'ta qmake gerekir). Wheel için >=5.15.10 kullanın.
+PyQt5>=5.15.10
